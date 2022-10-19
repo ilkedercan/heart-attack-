@@ -1,0 +1,215 @@
+---
+title: "HEART"
+author: "ilke"
+date: "2022-10-14"
+output: html_document
+---
+
+```{r}
+getwd()
+
+setwd("/home/ilke/Downloads")
+
+df<- read.csv("heart.csv",sep=",", header=TRUE,stringsAsFactors = FALSE)
+
+```
+
+
+```{r}
+head(df)
+```
+exang =egzerzise bağlı engina: (1 = evet; 0 = hayır)
+
+cp : Göğüs Ağrısı tipi Göğüs ağrısı tipi
+Değer 1: tipik anjina
+Değer 2: atipik anjina
+Değer 3: anjinal olmayan ağrı
+Değer 4: asemptomatik
+
+trtbps : dinlenme kan basıncı (mm Hg olarak)
+
+chol : BMI sensörü aracılığıyla alınan mg/dl cinsinden kolestoral
+
+fbs : (açlık kan şekeri > 120 mg/dl) (1 = doğru; 0 = yanlış
+
+rest_ecg : dinlenme elektrokardiyografik sonuçları
+0 değeri: normal
+Değer 1: ST-T dalga anormalliğine sahip olmak (T dalgası inversiyonları ve/veya ST yükselmesi veya > 0.05 mV depresyonu)
+Değer 2: Estes kriterlerine göre olası veya kesin sol ventrikül hipertrofisini gösteriyor
+
+thalach: ulaşılan maksimum kalp atış hızı
+
+target : 0= daha az kalp krizi geçirme olasılığı 1= daha fazla kalp krizi geçirme olasılığı
+```{r}
+colnames(df)
+```
+
+```{r}
+summary(df)
+```
+
+
+```{r}
+library(dplyr)
+glimpse(df)
+```
+
+```{r}
+#kategorik verileri faktor türüne dönüştürme
+
+
+df$sex <- as.factor(df$sex)
+df$output <- as.factor(df$output)
+df$caa <- as.factor(df$caa)
+df$exng <- as.factor(df$exng)
+df$thall <- as.factor(df$thall)
+df$fbs <- as.factor(df$fbs)
+df$restecg <- as.factor(df$restecg)
+df$slp <- as.factor(df$slp)
+df$cp <- as.factor(df$output)
+
+```
+
+```{r}
+glimpse(df)
+```
+
+```{r}
+df[df==""] <- NA
+sum(is.na(df))          #eksik gözlem yok. temiz veri seti
+```
+
+```{r}
+library(d3Tree)
+d3tree(list(root = df2tree(rootname ='df', 
+                           struct = as.data.frame(df)), 
+                           layout = 'collapse'))
+```
+
+```{r loadlib, echo=T, results='hide', message=F, warning=F}
+library(funModeling)
+profiling_num(df)   #sürekli değişkenlerin özet bazı istatistiklerini verir
+plot_num(df)  #genel histogram
+freq(df)      #detaylı data frame,grafikler verir
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(plotly)
+
+
+cinsiyet<- df %>% group_by(sex) %>% tally() %>% arrange(n, decreasing=T)
+cinsiyet
+
+ggplot(data = df) + 
+  geom_bar(mapping = aes(x = sex))
+```
+
+
+```{r}
+ggplot(df ,aes(x=age)) +geom_histogram(bins=20,fill='red')
+```
+
+
+```{r}
+#maksimum kalp ve cinsiyet
+
+
+ggplot(df, aes(x = thalachh, fill=factor(sex)))+
+      geom_bar() +
+      theme(legend.position = "yaş") +
+      ggtitle("yaş ve kalp krizi geçirme olasılığı")
+
+```
+
+
+```{r}
+library(gridExtra)
+
+df1<- df %>% filter(sex == '1')
+
+df2<- df %>% filter(sex == '0')
+df11<- ggplot(df1,aes(x=thalachh))+geom_histogram(bins=15,fill='magenta') + ggtitle("cinsiyet=kadın maksimum kalp atış hızı")
+
+df22<- ggplot(df2,aes(x=thalachh))+geom_histogram(bins=15,fill='magenta') + ggtitle("cinsiyet= erkek maksimum kalp atış hızı")
+
+grid.arrange(df11,df22,nrow=1)
+```
+
+```{r}
+ggplot(df, aes(factor(sex), fill = thall)) +
+  geom_bar(position = position_dodge()) + 
+  xlab("cinsiyet") + 
+  ylab("Gozlenme Sikliklari")
+```
+
+```{r}
+ggplot(df, aes(x = age, fill=factor(output)))+
+      geom_bar() +
+      theme(legend.position = "output") +
+      ggtitle("yaş ve kalp krizi geçirme olasılığı")
+```
+
+```{r}
+ggplot(df, aes(trtbps, fill = restecg)) +
+  geom_bar(position = position_dodge()) + 
+  ggtitle("dinlenme kan basıncı ve dinlenme elektrokardiyografik sonuçları") +
+  xlab("kan basıncı(trtbps") + 
+  ylab("Gozlenme Sikliklari")
+```
+
+```{r}
+ggplot(df, aes(factor(sex), fill = output)) +
+  geom_bar(position = position_dodge()) + 
+  ggtitle("cinsiyete göre kalp krizi geçirme ") +
+  xlab("cinsiyet") + 
+  ylab("Gozlenme Sikliklari")
+```
+
+```{r}
+library(corrplot)
+
+
+
+ggplot(df, aes(chol, thalachh, color = output, size = output )) +
+  geom_point() +
+   ggtitle("kolesterol,maksimum kalp atışı ve kalp krizi olasığı")
+
+```
+
+
+
+```{r}
+library(ggridges)
+
+ggplot(df, aes(x = age, y = output, fill = cp)) +
+  geom_density_ridges() + 
+  theme_ridges() + 
+  theme(legend.position = "none")
+```
+
+
+
+```{r}
+ggplot(df, aes(chol)) +
+  geom_histogram() +                     #ayrı ayrı verir
+  facet_grid(slp ~. )
+```
+
+
+```{r}
+#çoklu frekans
+ggplot(df, aes(chol, y = ..density..)) +
+  geom_density(aes(colour = sex), binwidth = 500)
+```
+```{r}
+ggplot(df, aes(x = chol , y = caa, fill = cp)) +
+         geom_boxplot()
+```
+
+```{r}
+ggplot(df, aes(x = chol, y = oldpeak, fill = sex)) +
+         geom_violin(alpha = 0.6)
+```
+
